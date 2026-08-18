@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aptitude AI - Multi-Agent Aptitude Preparation Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">⚡</div>
+                <div class="brand-text">
+                    <h2>Aptitude<span class="highlight">AI</span></h2>
+                    <p class="subtitle">Multi-Agent Prep Platform</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard" id="nav-dashboard">
+                    <span class="icon">📊</span> Dashboard
+                </button>
+                <button class="nav-item" data-tab="learn" id="nav-learn">
+                    <span class="icon">📖</span> Learn Topics
+                </button>
+                <button class="nav-item" data-tab="practice" id="nav-practice">
+                    <span class="icon">✏️</span> Practice Questions
+                </button>
+                <button class="nav-item" data-tab="mock" id="nav-mock">
+                    <span class="icon">⏱️</span> Mock Tests
+                </button>
+                <button class="nav-item" data-tab="cards" id="nav-cards">
+                    <span class="icon">🎴</span> Flashcards
+                </button>
+                <button class="nav-item" data-tab="performance" id="nav-performance">
+                    <span class="icon">📈</span> Performance
+                </button>
+                <button class="nav-item" data-tab="study-plan" id="nav-study-plan">
+                    <span class="icon">📅</span> Study Plan
+                </button>
+                <button class="nav-item" data-tab="tutor" id="nav-tutor">
+                    <span class="icon">🤖</span> AI Tutor Chat
+                </button>
+            </nav>
+
+            <div class="user-badge" id="sidebar-user-badge">
+                <div class="avatar" id="sidebar-avatar">SL</div>
+                <div class="user-info">
+                    <span class="user-name" id="sidebar-user-name">Standard Learner</span>
+                    <span class="status-online" id="sidebar-user-email">● Guest Mode</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-logout"
+                    style="display:none; padding: 4px 8px; font-size: 11px;" title="Sign Out">🚪 Sign Out</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header Bar -->
+            <header class="top-header">
+                <div class="header-left-group">
+                    <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle Menu">☰</button>
+                    <div class="page-title-container">
+                        <h1 id="page-title">Dashboard</h1>
+                        <p id="page-subtitle">Real-time learning analytics and preparation readiness</p>
+                    </div>
+                </div>
+                <div class="header-actions flex-align gap-md">
+                    <div class="streak-badge glass-card" id="header-streak-badge"
+                        style="padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-weight: 700; font-size: 13px;"
+                        title="Automated Daily Activity Streak">
+                        🔥 <span id="streak-count">0</span> Day Streak
+                    </div>
+                    <button class="btn btn-primary" id="btn-quick-practice">⚡ Quick Practice</button>
+                    <button class="btn btn-secondary" id="btn-today-plan">📅 Today's Plan</button>
+                </div>
+            </header>
+
+            <!-- Dashboard View -->
+            <section id="view-dashboard" class="tab-view active">
+                <div class="stats-grid">
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon cyan">🎯</div>
+                        <div class="stat-data">
+                            <span class="stat-value" id="dash-questions-count">0</span>
+                            <span class="stat-label">Questions Attempted</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon emerald">📈</div>
+                        <div class="stat-data">
+                            <span class="stat-value" id="dash-accuracy">0%</span>
+                            <span class="stat-label">Overall Accuracy</span>
+                        </div>
+                    </div>
+                    <!-- <div class="stat-card glass-card">
+                        <div class="streak-badge glass-card" id="header-streak-badge"
+                            style="padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-weight: 700; font-size: 13px;"
+                            title="Automated Daily Activity Streak">
+                            🔥 <span id="streak-count">0</span> Day Streak
+                        </div>
+                    </div> -->
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon purple">🏆</div>
+                        <div class="stat-data">
+                            <span class="stat-value" id="dash-score-rank">Mastery Level 2</span>
+                            <span class="stat-label">Readiness Status</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-columns">
+                    <div class="glass-panel col-main">
+                        <h3><span class="icon">⚠️</span> Priority Weak Topics Needing Attention</h3>
+                        <div id="dash-weak-topics-list" class="topic-tags-container">
+                            <span class="loading-spinner">Loading analytics...</span>
+                        </div>
+
+                        <h3 class="mt-xl"><span class="icon">💪</span> Strong Topics</h3>
+                        <div id="dash-strong-topics-list" class="topic-tags-container">
+                            <span class="loading-spinner">Loading analytics...</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel col-side">
+                        <h3><span class="icon">⚡</span> Quick AI Natural Language Router</h3>
+                        <p class="text-muted">Ask anything to trigger the LangGraph Multi-Agent Orchestrator.</p>
+                        <div class="quick-input-group">
+                            <input type="text" id="dash-quick-query"
+                                placeholder="e.g. 'Teach me profit and loss' or 'Give me 5 hard ratio questions'"
+                                class="form-input">
+                            <button id="dash-btn-ask" class="btn btn-primary">Ask Agents</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Learn View -->
+            <section id="view-learn" class="tab-view">
+                <div class="control-bar glass-card">
+                    <div class="form-group">
+                        <label for="learn-topic-select">Select Topic</label>
+                        <select id="learn-topic-select" class="form-select">
+                            <option value="Percentage">Percentage</option>
+                            <option value="Profit and Loss">Profit and Loss</option>
+                            <option value="Ratio and Proportion">Ratio and Proportion</option>
+                            <option value="Time and Work">Time and Work</option>
+                            <option value="Probability">Probability</option>
+                            <option value="Number Series">Number Series</option>
+                            <option value="Vocabulary">Vocabulary</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="learn-diff-select">Difficulty</label>
+                        <select id="learn-diff-select" class="form-select">
+                            <option value="easy">Easy</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                    <button id="btn-generate-lesson" class="btn btn-primary">📖 Generate AI Lesson</button>
+                </div>
+
+                <div id="lesson-container" class="glass-panel mt-lg">
+                    <div class="placeholder-state">
+                        <span class="big-icon">📖</span>
+                        <h3>Select a topic above and click 'Generate AI Lesson'</h3>
+                        <p>The Learning Agent will retrieve RAG context and construct a 11-section lesson.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Practice View -->
+            <section id="view-practice" class="tab-view">
+                <div class="control-bar glass-card">
+                    <div class="form-group">
+                        <label for="practice-topic-select">Topic</label>
+                        <select id="practice-topic-select" class="form-select">
+                            <option value="Percentage">Percentage</option>
+                            <option value="Profit and Loss">Profit and Loss</option>
+                            <option value="Ratio and Proportion">Ratio and Proportion</option>
+                            <option value="Time and Work">Time and Work</option>
+                            <option value="Probability">Probability</option>
+                            <option value="Number Series">Number Series</option>
+                            <option value="Vocabulary">Vocabulary</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="practice-diff-select">Difficulty</label>
+                        <select id="practice-diff-select" class="form-select">
+                            <option value="easy">Easy</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="practice-count-select">Questions</label>
+                        <select id="practice-count-select" class="form-select">
+                            <option value="3">3 MCQs</option>
+                            <option value="5" selected>5 MCQs</option>
+                            <option value="10">10 MCQs</option>
+                        </select>
+                    </div>
+                    <button id="btn-start-practice" class="btn btn-primary">⚡ Generate Validated MCQs</button>
+                </div>
+
+                <div id="practice-mcq-container" class="mt-lg">
+                    <div class="placeholder-state glass-panel">
+                        <span class="big-icon">✏️</span>
+                        <h3>Ready for Practice</h3>
+                        <p>Questions generated by Practice Agent will be validated by the AST Calculator before display.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Mock Test View -->
+            <section id="view-mock" class="tab-view">
+                <div class="control-bar glass-card">
+                    <div class="form-group">
+                        <label for="mock-cat-select">Category</label>
+                        <select id="mock-cat-select" class="form-select">
+                            <option value="All" selected>All Categories</option>
+                            <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+                            <option value="Logical Reasoning">Logical Reasoning</option>
+                            <option value="Verbal Ability">Verbal Ability</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="mock-count-select">Test Size</label>
+                        <select id="mock-count-select" class="form-select">
+                            <option value="5">5 Questions (8 mins)</option>
+                            <option value="10" selected>10 Questions (15 mins)</option>
+                            <option value="20">20 Questions (30 mins)</option>
+                            <option value="30">30 Questions (45 mins)</option>
+                        </select>
+                    </div>
+                    <button id="btn-create-mock" class="btn btn-accent">⏱️ Create Timed Mock Test</button>
+                </div>
+
+                <div id="mock-active-container" class="mt-lg">
+                    <div class="placeholder-state glass-panel">
+                        <span class="big-icon">⏱️</span>
+                        <h3>No Active Mock Test</h3>
+                        <p>Configure parameters above and click 'Create Timed Mock Test' to start your exam simulation.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="mock-history-container" class="mt-xl glass-panel">
+                    <div class="flex-between mb-md">
+                        <h3>📜 Past Mock Tests & Revisit History</h3>
+                        <button id="btn-load-mock-history" class="btn btn-secondary btn-sm">🔄 Refresh History</button>
+                    </div>
+                    <div id="mock-history-list">
+                        <div class="text-muted">Click 'Refresh History' or submit a test to revisit past results.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Flashcards View -->
+            <section id="view-cards" class="tab-view">
+                <div class="control-bar glass-card">
+                    <div class="form-group">
+                        <label for="card-topic-select">Topic</label>
+                        <select id="card-topic-select" class="form-select">
+                            <option value="Percentage">Percentage</option>
+                            <option value="Profit and Loss">Profit and Loss</option>
+                            <option value="Time and Work">Time and Work</option>
+                            <option value="Probability">Probability</option>
+                            <option value="Vocabulary">Vocabulary</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="card-type-select">Card Type</label>
+                        <select id="card-type-select" class="form-select">
+                            <option value="all">All Types</option>
+                            <option value="formula">Formula Cards</option>
+                            <option value="shortcut">Shortcut Cards</option>
+                            <option value="concept">Concept Cards</option>
+                            <option value="vocabulary">Vocabulary Cards</option>
+                            <option value="mistake">Mistake Cards</option>
+                        </select>
+                    </div>
+                    <button id="btn-fetch-cards" class="btn btn-primary">🎴 Get Cards</button>
+                </div>
+
+                <div id="cards-viewer-container" class="cards-layout mt-lg">
+                    <div class="placeholder-state glass-panel">
+                        <span class="big-icon">🎴</span>
+                        <h3>Study Flashcards</h3>
+                        <p>Click 'Get Cards' to review formula cards, shortcuts, concepts, and mistake logs.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Performance View -->
+            <section id="view-performance" class="tab-view">
+                <div id="performance-content-container">
+                    <div class="loading-spinner">Loading analytical metrics...</div>
+                </div>
+            </section>
+
+            <!-- Study Plan View -->
+            <section id="view-study-plan" class="tab-view">
+                <div class="glass-panel-header flex-between mb-lg">
+                    <div>
+                        <h2>Personalized Adaptive Study Plan</h2>
+                        <p class="text-muted">Targeted schedule generated based on weak topic accuracy thresholds.</p>
+                    </div>
+                    <button id="btn-refresh-plan" class="btn btn-primary">🔄 Re-Generate Adaptive Plan</button>
+                </div>
+                <div id="study-plan-container">
+                    <div class="loading-spinner">Loading study plan...</div>
+                </div>
+            </section>
+
+            <!-- AI Tutor Chat View -->
+            <section id="view-tutor" class="tab-view">
+                <div class="chat-wrapper glass-panel">
+                    <div class="chat-header">
+                        <span class="bot-avatar">🤖</span>
+                        <div>
+                            <h3>Aptitude AI Tutor (LangGraph Orchestrator)</h3>
+                            <p class="status-subtitle">Routing requests seamlessly to specialized agents</p>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="chat-messages-container">
+                        <div class="message system-msg">
+                            Hello! I am your Aptitude AI Tutor. You can ask me to teach topics, generate practice
+                            questions, create timed mock tests, show flashcard formulas, or give you a personalized
+                            study plan!
+                        </div>
+                    </div>
+                    <div class="chat-input-bar">
+                        <input type="text" id="chat-input-text"
+                            placeholder="Ask anything, e.g. 'Teach me percentage' or 'What are my weak topics?'"
+                            class="form-input">
+                        <button id="btn-send-chat" class="btn btn-primary">Send</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Authentication Modal Overlay -->
+    <div id="auth-modal-overlay" class="auth-modal-overlay" style="display: none;">
+        <div class="auth-card glass-panel">
+            <div class="auth-header text-center mb-lg">
+                <div class="auth-brand">⚡ AptitudeAI</div>
+                <p class="text-muted mt-xs">Multi-Agent Aptitude Prep Platform</p>
+            </div>
+
+            <div class="auth-tabs flex-between mb-lg">
+                <button class="auth-tab-btn active" id="tab-login-btn">Sign In</button>
+                <button class="auth-tab-btn" id="tab-register-btn">Register New Account</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="form-login" class="auth-form">
+                <div class="form-group mb-md">
+                    <label for="login-email">Email Address</label>
+                    <input type="email" id="login-email" class="form-input" placeholder="user@example.com" required>
+                </div>
+                <div class="form-group mb-md">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <div id="login-error-msg" class="text-danger mb-sm"
+                    style="display:none; color: #ef4444; font-size: 13px;"></div>
+                <button type="submit" class="btn btn-primary btn-block w-full">Sign In</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="form-register" class="auth-form" style="display: none;">
+                <div class="form-group mb-md">
+                    <label for="reg-name">Full Name</label>
+                    <input type="text" id="reg-name" class="form-input" placeholder="John Doe" required>
+                </div>
+                <div class="form-group mb-md">
+                    <label for="reg-email">Email Address</label>
+                    <input type="email" id="reg-email" class="form-input" placeholder="user@example.com" required>
+                </div>
+                <div class="form-group mb-md">
+                    <label for="reg-password">Password (min 4 chars)</label>
+                    <input type="password" id="reg-password" class="form-input" placeholder="••••••••" required
+                        minlength="4">
+                </div>
+                <div id="reg-error-msg" class="text-danger mb-sm"
+                    style="display:none; color: #ef4444; font-size: 13px;"></div>
+                <button type="submit" class="btn btn-accent btn-block w-full">Create Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Diagnostic Onboarding Assessment Overlay -->
+    <div id="onboarding-modal-overlay" class="auth-modal-overlay" style="display: none;">
+        <div class="auth-card glass-panel" style="max-width: 680px; width: 92%; max-height: 90vh; overflow-y: auto;">
+            <div class="auth-header text-center mb-lg">
+                <div class="auth-brand">🧠 Diagnostic Level Assessment</div>
+                <p class="text-muted mt-xs">Answer these 5 quick diagnostic questions so our AI agents can detect your baseline skill level and generate your personalized study plan!</p>
+            </div>
+
+            <div id="onboarding-questions-container">
+                <div class="loading-spinner">Loading diagnostic assessment...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
