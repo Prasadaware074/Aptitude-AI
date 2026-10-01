@@ -134,14 +134,15 @@ const ApiService = {
         return response.json();
     },
 
-    async submitMockTest(mockTestId, submissions) {
+    async submitMockTest(mockTestId, submissions, timeTakenSeconds = 0.0) {
         const response = await fetch(`${API_BASE}/api/mock/submit`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 mock_test_id: mockTestId,
                 user_id: this.getUserId(),
-                submissions
+                submissions,
+                time_taken_seconds: timeTakenSeconds
             })
         });
         if (!response.ok) throw new Error("Failed to submit mock test");

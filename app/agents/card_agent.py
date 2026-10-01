@@ -131,21 +131,14 @@ class CardAgent:
                 ))
 
         if c_type == "vocabulary" or (category == "Verbal Ability" and c_type == "all"):
-            vocab_terms = [
-                {"term": "METICULOUS", "def": "Showing great attention to detail; careful and precise.", "ex": "She was meticulous in reviewing her answers."},
-                {"term": "CANDID", "def": "Truthful, straightforward; frank.", "ex": "The tutor gave candid feedback on the mock test."},
-                {"term": "PRAGMATIC", "def": "Dealing with things sensibly and realistically.", "ex": "Using shortcuts is a pragmatic approach to timed tests."},
-                {"term": "LUCID", "def": "Expressed clearly; easy to understand.", "ex": "The explanation for the problem was lucid."},
-                {"term": "TENACIOUS", "def": "Persistent, tending to keep a firm hold.", "ex": "The learner was tenacious in solving hard math problems."}
-            ]
-            for v in vocab_terms:
-                cards.append(FlashcardSchema(
-                    card_type="vocabulary",
-                    topic=topic if topic != "All" else "Vocabulary",
-                    category="Verbal Ability",
-                    title=f"Vocabulary: {v['term']}",
-                    content=f"Meaning: {v['def']}",
-                    example=v['ex']
-                ))
+            v_topic = topic if topic != "All" else "Vocabulary"
+            cards.append(FlashcardSchema(
+                card_type="vocabulary",
+                topic=v_topic,
+                category="Verbal Ability",
+                title=f"Vocabulary Focus: {v_topic}",
+                content=f"Key terms and contextual usage rules for {v_topic}.",
+                example=f"Review active vs passive contextual usage in competitive exams for {v_topic}."
+            ))
 
         return cards

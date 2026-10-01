@@ -289,6 +289,18 @@ def practice_submit_endpoint(request: PracticeSubmitRequest):
     finally:
         db.close()
 
+# --- Topics Registry Endpoint ---
+@router.get("/topics")
+def get_topics_endpoint():
+    from app.config.topics import TOPIC_REGISTRY
+    return {
+        topic: {
+            "category": data["category"],
+            "description": data["description"]
+        }
+        for topic, data in TOPIC_REGISTRY.items()
+    }
+
 # --- Mock Test Endpoints ---
 @router.post("/mock/create")
 def mock_create_endpoint(request: MockTestCreateRequest, user_id: str = "default_user"):
@@ -307,8 +319,10 @@ def mock_create_endpoint(request: MockTestCreateRequest, user_id: str = "default
 @router.post("/mock/submit", response_model=MockTestResultResponse)
 def mock_submit_endpoint(request: MockTestSubmitRequest):
     try:
-        total_time = sum(s.time_taken or 0.0 for s in request.submissions)
+        total_time = request.time_taken_seconds if (request.time_taken_seconds and request.time_taken_seconds > 0) else sum(s.time_taken or 0.0 for s in request.submissions)
         return MockAgent.submit_mock_test(request.mock_test_id, request.submissions, total_time)
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Mock submission error: {str(e)}")
 

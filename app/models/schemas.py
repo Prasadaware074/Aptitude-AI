@@ -68,6 +68,7 @@ class LessonRequest(BaseModel):
 class LessonResponse(BaseModel):
     topic: str
     category: str
+    difficulty: Optional[str] = "medium"
     topic_overview: str
     definition: str
     core_concepts: List[str]
@@ -134,6 +135,7 @@ class MockTestSubmitRequest(BaseModel):
     mock_test_id: str
     user_id: str = "default_user"
     submissions: List[UserAnswerSubmission]
+    time_taken_seconds: Optional[float] = 0.0
 
 class TopicPerformance(BaseModel):
     topic: str

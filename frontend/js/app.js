@@ -353,6 +353,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    function getCategoryForTopic(topic) {
+        const reasoning = ["Number Series", "Coding-Decoding", "Syllogism", "Blood Relations", "Seating Arrangement"];
+        const verbal = ["Vocabulary", "Grammar", "Reading Comprehension"];
+        if (reasoning.includes(topic)) return "Logical Reasoning";
+        if (verbal.includes(topic)) return "Verbal Ability";
+        return "Quantitative Aptitude";
+    }
+
     // --- Practice View Handler ---
     document.getElementById("btn-start-practice").addEventListener("click", async () => {
         const topic = document.getElementById("practice-topic-select").value;
@@ -360,10 +368,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const count = document.getElementById("practice-count-select").value;
         const container = document.getElementById("practice-mcq-container");
 
-        container.innerHTML = `<div class="loading-spinner">Generating and validating ${count} MCQs via AST Calculator Pipeline...</div>`;
+        container.innerHTML = `<div class="loading-spinner">Generating and validating ${count} MCQs...</div>`;
 
         try {
-            const questions = await ApiService.generatePractice(topic, "Quantitative Aptitude", diff, count);
+            const cat = getCategoryForTopic(topic);
+            const questions = await ApiService.generatePractice(topic, cat, diff, count);
             renderPracticeQuestions(questions, container);
         } catch (e) {
             container.innerHTML = `<div class="text-muted">Error generating practice: ${e.message}</div>`;
@@ -453,15 +462,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- Mock Test Handler ---
+    let mockTimerInterval = null;
+
     document.getElementById("btn-create-mock").addEventListener("click", async () => {
         const cat = document.getElementById("mock-cat-select").value;
+        const topicElem = document.getElementById("mock-topic-select");
+        const topic = topicElem ? topicElem.value : "All";
+        const diffElem = document.getElementById("mock-diff-select");
+        const diff = diffElem ? diffElem.value : "medium";
         const count = document.getElementById("mock-count-select").value;
         const container = document.getElementById("mock-active-container");
 
         container.innerHTML = `<div class="loading-spinner">Creating timed mock test with ${count} questions...</div>`;
 
         try {
-            const mock = await ApiService.createMockTest(cat, "All", "medium", count, 15);
+            const timeLimit = parseInt(count) >= 20 ? 30 : (parseInt(count) >= 10 ? 15 : 8);
+            const mock = await ApiService.createMockTest(cat, topic, diff, count, timeLimit);
             renderMockTest(mock, container);
         } catch (e) {
             container.innerHTML = `<div class="text-muted">Error creating test: ${e.message}</div>`;
@@ -469,8 +485,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function renderMockTest(mock, container) {
+        if (mockTimerInterval) {
+            clearInterval(mockTimerInterval);
+            mockTimerInterval = null;
+        }
+
         const qList = mock.questions;
         let userAnswers = {};
+        let isMockSubmitted = false;
+        const mockStartTime = Date.now();
+        const timeLimitMinutes = mock.time_limit_minutes || 15;
+        const mockEndTime = mockStartTime + timeLimitMinutes * 60 * 1000;
 
         let html = `
             <div class="glass-panel mb-lg flex-between">
@@ -478,14 +503,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     <h2>${mock.title}</h2>
                     <p class="text-muted">${mock.total_questions} Questions | Limit: ${mock.time_limit_minutes} Minutes</p>
                 </div>
-                <div class="stat-value text-cyan" id="mock-timer-display">${mock.time_limit_minutes}:00</div>
+                <div class="stat-value text-cyan" id="mock-timer-display">${String(timeLimitMinutes).padStart(2, '0')}:00</div>
             </div>
 
             <div id="mock-questions-list">
                 ${qList.map((q, idx) => `
                     <div class="mcq-card">
                         <div class="mcq-header">
-                            <span>Question ${idx + 1} of ${qList.length}</span>
+                            <span>Question ${idx + 1} of ${qList.length} | ${q.topic}</span>
+                            <span class="badge-tag badge-neutral">${(q.difficulty || 'medium').toUpperCase()}</span>
                         </div>
                         <div class="mcq-question-text">${q.question}</div>
                         <div class="options-grid">
@@ -503,8 +529,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
         container.innerHTML = html;
 
+        // Start Real Countdown Timer based on absolute timestamp
+        function updateTimer() {
+            const now = Date.now();
+            const remainingMs = Math.max(0, mockEndTime - now);
+            const remainingSec = Math.floor(remainingMs / 1000);
+            const mins = Math.floor(remainingSec / 60);
+            const secs = remainingSec % 60;
+            const timerEl = document.getElementById("mock-timer-display");
+
+            if (timerEl) {
+                timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                if (remainingSec <= 60) {
+                    timerEl.style.color = "#ef4444";
+                }
+            }
+
+            if (remainingSec <= 0) {
+                if (mockTimerInterval) {
+                    clearInterval(mockTimerInterval);
+                    mockTimerInterval = null;
+                }
+                if (!isMockSubmitted) {
+                    handleMockSubmission(true);
+                }
+            }
+        }
+
+        updateTimer();
+        mockTimerInterval = setInterval(updateTimer, 1000);
+
         container.querySelectorAll(".mock-opt-btn").forEach(btn => {
             btn.addEventListener("click", () => {
+                if (isMockSubmitted) return;
                 const qid = btn.getAttribute("data-qid");
                 const opt = btn.getAttribute("data-opt");
                 userAnswers[qid] = opt;
@@ -513,21 +570,44 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        document.getElementById("btn-submit-mock-test").addEventListener("click", async () => {
+        async function handleMockSubmission(isTimeout = false) {
+            if (isMockSubmitted) return;
+            isMockSubmitted = true;
+
+            if (mockTimerInterval) {
+                clearInterval(mockTimerInterval);
+                mockTimerInterval = null;
+            }
+
+            const submitBtn = document.getElementById("btn-submit-mock-test");
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = isTimeout ? "⌛ Time Expired - Auto Submitting..." : "Submitting Test...";
+            }
+
+            container.querySelectorAll(".mock-opt-btn").forEach(b => {
+                b.disabled = true;
+                b.style.cursor = "not-allowed";
+                b.style.opacity = "0.7";
+            });
+
+            const totalTimeTakenSeconds = Math.round((Date.now() - mockStartTime) / 1000);
             const submissions = qList.map(q => ({
                 question_id: q.id,
                 selected_answer: userAnswers[q.id] || null,
-                time_taken: 15.0
+                time_taken: Math.round(totalTimeTakenSeconds / Math.max(qList.length, 1))
             }));
 
             try {
-                const res = await ApiService.submitMockTest(mock.mock_test_id, submissions);
+                const res = await ApiService.submitMockTest(mock.mock_test_id, submissions, totalTimeTakenSeconds);
                 renderMockTestResults(res, container);
                 loadMockHistory();
             } catch (e) {
                 alert("Error submitting mock test: " + e.message);
             }
-        });
+        }
+
+        document.getElementById("btn-submit-mock-test").addEventListener("click", () => handleMockSubmission(false));
     }
 
     function renderMockTestResults(res, container) {

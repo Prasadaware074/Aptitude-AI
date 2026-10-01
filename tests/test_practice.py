@@ -50,3 +50,16 @@ def test_question_variety_and_shuffling():
     correct_keys = set(q.correct_answer for q in batch1 + batch2)
     assert len(correct_keys) >= 1
 
+def test_difficulty_scaling_and_topic_uniqueness():
+    topics = ["Profit and Loss", "Time and Work", "Speed, Distance and Time", "Ratio and Proportion"]
+    for topic in topics:
+        easy_qs = PracticeAgent.generate_practice_questions(topic=topic, difficulty="easy", number_of_questions=2)
+        hard_qs = PracticeAgent.generate_practice_questions(topic=topic, difficulty="hard", number_of_questions=2)
+        assert len(easy_qs) == 2
+        assert len(hard_qs) == 2
+        assert easy_qs[0].difficulty == "easy"
+        assert hard_qs[0].difficulty == "hard"
+        # Ensure questions have distinct text
+        assert easy_qs[0].question != hard_qs[0].question or easy_qs[0].option_a != hard_qs[0].option_a
+
+

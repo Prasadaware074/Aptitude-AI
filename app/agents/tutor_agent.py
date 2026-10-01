@@ -1,18 +1,30 @@
+import re
 from typing import Optional
 from app.rag.retriever import retrieve_aptitude_context
 from app.agents.performance_agent import PerformanceAgent
 from app.agents.llm_factory import get_llm
 from app.database.connection import SessionLocal
 from app.database.repository import Repository
+from app.tools.scope_validator import ScopeValidator, RESTRICTION_MESSAGE
 
 class TutorAgent:
     """Agent responsible for intelligent multi-turn conversational tutoring, doubt resolution, and personalized guidance."""
+
+    @staticmethod
+    def is_aptitude_related(query: str, topic: Optional[str] = None) -> bool:
+        """Determines whether a user query is strictly related to aptitude, math, logic, verbal ability, exam prep, or study guidance."""
+        is_apt, _ = ScopeValidator.is_aptitude_query(query, topic)
+        return is_apt
 
     @staticmethod
     def generate_chat_reply(user_id: str = "default_user", query: str = "", topic: Optional[str] = None) -> str:
         clean_q = query.strip()
         if not clean_q:
             return "Hello! I am your Aptitude AI Tutor. How can I help you prepare today?"
+
+        # Deterministic Scope Validation BEFORE any LLM call
+        if not TutorAgent.is_aptitude_related(clean_q, topic):
+            return RESTRICTION_MESSAGE
 
         # Fetch user performance profile
         perf = PerformanceAgent.get_user_performance(user_id)
@@ -44,11 +56,16 @@ RAG Background Knowledge Context:
 
 User Query: "{clean_q}"
 
+CRITICAL RESTRICTION RULE:
+You are RESTRICTED strictly to Aptitude (Quantitative Aptitude, Logical Reasoning, Verbal Ability) and Competitive Exam preparation topics.
+Do NOT assist with general programming (e.g. Python, Java, React), movies, sports, politics, cooking, or trivia.
+If the query is outside aptitude scope, output the exact restriction:
+"I am AptitudeAI, an aptitude-focused tutor. I can help with Quantitative Aptitude, Logical Reasoning, Verbal Ability, aptitude questions, concepts, practice, and mock tests. Please ask an aptitude-related question."
+
 Guidelines:
 - Address the user naturally by name if appropriate.
 - Provide a clear, engaging, step-by-step answer to the user's specific query.
 - Include formulas, shortcut tricks, or worked examples when relevant to math/logic questions.
-- If the user asks about their performance or weak topics, give tailored recommendations.
 - Keep formatting clean using GitHub Markdown headers, bolding, and bullet points.
 """
             try:
@@ -59,12 +76,32 @@ Guidelines:
             except Exception:
                 pass
 
-        # Dynamic Intelligent Fallback Response Generator
+        # Dynamic Fallback Response Generator
         return TutorAgent._dynamic_fallback_reply(user_name, clean_q, topic, perf, rag_context)
 
     @staticmethod
     def _dynamic_fallback_reply(user_name: str, query: str, topic: Optional[str], perf, rag_context: str) -> str:
         q_lower = query.lower()
+
+        # Check restriction in fallback
+        if not TutorAgent.is_aptitude_related(query, topic):
+            return RESTRICTION_MESSAGE
+
+        # Direct Math Calculation check (e.g., "What is 15% of 240?")
+        pct_match = re.search(r'(\d+(?:\.\d+)?)\%\s*of\s*(\d+(?:\.\d+)?)', query, re.IGNORECASE)
+        if pct_match:
+            pct_val = float(pct_match.group(1))
+            base_val = float(pct_match.group(2))
+            res = (pct_val / 100.0) * base_val
+            res_str = f"{int(res)}" if res.is_integer() else f"{res:.2f}"
+            return (
+                f"### 🧮 Quantitative Calculation Solution\n\n"
+                f"**Question:** What is {pct_match.group(1)}% of {pct_match.group(2)}?\n\n"
+                f"**Step-by-Step Solution:**\n"
+                f"1. Convert percentage to fraction: {pct_match.group(1)}% = {pct_val} / 100 = {pct_val/100.0}\n"
+                f"2. Multiply by base value: ({pct_val} / 100) * {base_val} = **{res_str}**\n\n"
+                f"✅ **Answer:** **{res_str}**"
+            )
 
         # 1. Greetings
         if any(w in q_lower for w in ["hi", "hello", "hey", "good morning", "good evening", "greetings"]):

@@ -1,3 +1,4 @@
+import random
 from typing import List, Dict, Any, Optional
 from app.models.schemas import (
     MockTestCreateRequest, MockTestSubmitRequest, MockTestResultResponse,
@@ -5,6 +6,7 @@ from app.models.schemas import (
 )
 from app.agents.practice_agent import PracticeAgent
 from app.tools.scoring import TestScorer
+from app.config.topics import normalize_topic, get_category_for_topic, is_valid_topic, TOPIC_REGISTRY
 from app.database.connection import SessionLocal
 from app.database.repository import Repository
 
@@ -20,37 +22,106 @@ class MockAgent:
         number_of_questions: int = 10,
         time_limit_minutes: int = 15
     ) -> Dict[str, Any]:
+        norm_topic = normalize_topic(topic) if topic != "All" else "All"
+        diff = difficulty.lower() if difficulty.lower() in ["easy", "medium", "hard"] else "medium"
+
         db = SessionLocal()
         try:
             repo = Repository(db)
+            generated_schemas: List[QuestionSchema] = []
 
-            # Retrieve or generate questions
-            questions = repo.get_questions(topic=topic, category=category, difficulty=difficulty, limit=number_of_questions)
-            
-            if len(questions) < number_of_questions:
-                needed = number_of_questions - len(questions)
-                gen_topic = topic if topic != "All" else "Percentage"
-                gen_cat = category if category != "All" else "Quantitative Aptitude"
-                gen_qs = PracticeAgent.generate_practice_questions(
-                    topic=gen_topic,
-                    category=gen_cat,
-                    difficulty=difficulty,
-                    number_of_questions=needed
+            # 1. Specific Topic Selected -> NEVER MIX TOPICS
+            if norm_topic != "All":
+                target_cat = category if category != "All" else get_category_for_topic(norm_topic)
+                generated_schemas = PracticeAgent.generate_practice_questions(
+                    topic=norm_topic,
+                    category=target_cat,
+                    difficulty=diff,
+                    number_of_questions=number_of_questions
                 )
-                questions = repo.get_questions(topic=topic, category=category, difficulty=difficulty, limit=number_of_questions)
 
-            title = f"{category} ({topic}) Aptitude Mock Test - {number_of_questions} Questions"
+            # 2. Category Selected, All Topics
+            elif category != "All":
+                cat_topics = [t for t, info in TOPIC_REGISTRY.items() if info["category"].lower() == category.lower()]
+                if not cat_topics:
+                    cat_topics = ["Percentage", "Profit and Loss", "Probability"]
+
+                q_per_topic = max(1, number_of_questions // len(cat_topics))
+                for t in cat_topics:
+                    if len(generated_schemas) >= number_of_questions:
+                        break
+                    needed = min(q_per_topic, number_of_questions - len(generated_schemas))
+                    sub_qs = PracticeAgent.generate_practice_questions(
+                        topic=t,
+                        category=category,
+                        difficulty=diff,
+                        number_of_questions=needed
+                    )
+                    generated_schemas.extend(sub_qs)
+
+                # Fill remaining if needed
+                while len(generated_schemas) < number_of_questions:
+                    t = random.choice(cat_topics)
+                    extra = PracticeAgent.generate_practice_questions(
+                        topic=t,
+                        category=category,
+                        difficulty=diff,
+                        number_of_questions=1
+                    )
+                    generated_schemas.extend(extra)
+
+            # 3. All Categories, All Topics
+            else:
+                all_topic_tuples = [(t, info["category"]) for t, info in TOPIC_REGISTRY.items()]
+                sampled_tuples = list(all_topic_tuples)
+                random.shuffle(sampled_tuples)
+
+                for t, c in sampled_tuples:
+                    if len(generated_schemas) >= number_of_questions:
+                        break
+                    sub_qs = PracticeAgent.generate_practice_questions(
+                        topic=t,
+                        category=c,
+                        difficulty=diff,
+                        number_of_questions=1
+                    )
+                    generated_schemas.extend(sub_qs)
+
+                while len(generated_schemas) < number_of_questions:
+                    t, c = random.choice(all_topic_tuples)
+                    extra = PracticeAgent.generate_practice_questions(
+                        topic=t,
+                        category=c,
+                        difficulty=diff,
+                        number_of_questions=1
+                    )
+                    generated_schemas.extend(extra)
+
+            gen_schemas = generated_schemas[:number_of_questions]
+
+            # Retrieve DB models corresponding to the generated question IDs
+            questions = []
+            for qs in gen_schemas:
+                if qs.id:
+                    db_q = repo.get_question_by_id(qs.id)
+                    if db_q:
+                        questions.append(db_q)
+
+            if not questions:
+                questions = repo.get_questions(topic=norm_topic, category=category, difficulty=diff, limit=number_of_questions)
+
+            title = f"{category} ({norm_topic}) Aptitude Mock Test - {number_of_questions} Questions ({diff.title()})"
             mock_model = repo.create_mock_test(
                 user_id=user_id,
                 title=title,
                 category=category,
-                topic=topic,
-                difficulty=difficulty,
+                topic=norm_topic,
+                difficulty=diff,
                 questions=questions,
                 time_limit_minutes=time_limit_minutes
             )
 
-            # Strip correct answers & explanations for user presentation before test submission
+            # User facing question objects strip correct_answer and explanation before submission
             user_facing_questions = [
                 {
                     "id": q.id,
@@ -117,7 +188,6 @@ class MockAgent:
 
     @staticmethod
     def get_mock_history(user_id: str = "default_user") -> List[MockTestHistorySummarySchema]:
-        from app.models.schemas import MockTestHistorySummarySchema
         db = SessionLocal()
         try:
             repo = Repository(db)

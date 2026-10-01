@@ -242,8 +242,18 @@ class Repository:
         if not mock:
             raise ValueError(f"Mock test {mock_test_id} not found")
 
+        if mock.completed:
+            return mock
+
         mtqs = self.db.query(MockTestQuestionModel).filter(MockTestQuestionModel.mock_test_id == mock_test_id).all()
         
+        # Calculate server-side elapsed time if created_at is available
+        actual_time = total_time_seconds
+        if mock.created_at:
+            server_elapsed = (datetime.utcnow() - mock.created_at).total_seconds()
+            if server_elapsed > 0:
+                actual_time = max(total_time_seconds, server_elapsed)
+
         correct_count = 0
         for mtq in mtqs:
             q = self.get_question_by_id(mtq.question_id)
@@ -268,7 +278,7 @@ class Repository:
                     selected_answer=selected,
                     correct_answer=q.correct_answer,
                     is_correct=(selected.lower() == q.correct_answer.lower()),
-                    time_taken=total_time_seconds / max(len(mtqs), 1)
+                    time_taken=actual_time / max(len(mtqs), 1)
                 )
 
         mock.score = float(correct_count)
